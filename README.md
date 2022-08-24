@@ -22,3 +22,13 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+
+## contract
+
+### deploy
+
+```
+npx hardhat run scripts/deploy.js --network <network-name>
+
+```
