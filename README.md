@@ -1,5 +1,10 @@
 # htlc
 
+## Project development technology
+
+* contract: solidity + hardhat + js
+* dapp: react + typescript
+
 ## Project setup
 ```
 npm install
@@ -52,10 +57,8 @@ ywd@ubuntu:~/workspace/vue3/htlc$ npx hardhat test
 
 ## Getting started
 
-### Prepare Enviroment
 
-
-#### step 1. start A and B blockchain
+### step 1. start A and B blockchain
 
 
 ```
@@ -67,3 +70,24 @@ npx hardhat node --port 8545
 # b blockchain
 npx hardhat node --port 9545
 ```
+
+### step 2. install metamask
+
+connet two blockchain
+![Imgae test](./doc/image/connect.png)
+
+
+### step 3. sender deploy contract on Achain
+
+![Imgae test](./doc/image/deploy.png)
+
+![Imgae test](./doc/image/deploy_success.png)
+
+
+### step 4. sender create A HTLC
+
+![Imgae test](./doc/image/new_htlc.png)
+
+### step 5. reciver get AETH from HTLC
+
+![Imgae test](./doc/image/withdraw.png)
