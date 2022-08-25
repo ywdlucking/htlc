@@ -83,6 +83,7 @@ describe("HTLC", function () {
         const sender = one.address;
         const receiver = two.address;
         const hp = newHashPair();
+        console.log("hp", hp.hash);
         const { unlockTime, lockedAmount } = await lockTime();
         const tx = await lock.newHTLC(receiver, hp.hash, unlockTime, {from: sender, value: lockedAmount});
         const txReceipt = await tx.wait();
@@ -141,6 +142,7 @@ describe("HTLC", function () {
         const hashId = txReceipt.logs[0].topics[1];
         const before = await lock.provider.getBalance(lock.address);
         expect(before).to.equal(lockedAmount);
+        console.log("withdraw:", hashId, hp.preimage)
         await lock.connect(two).withdraw(hashId, hp.preimage);
         const after = await lock.provider.getBalance(lock.address);
         expect(after).to.equal(0);

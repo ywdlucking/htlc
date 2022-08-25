@@ -1,6 +1,6 @@
 import { useWeb3React } from '@web3-react/core';
 import { Contract, ethers, Signer } from 'ethers';
-import { createHash } from 'crypto';
+import Crypoto from '../utils/CryptoJS';
 import {
   ChangeEvent,
   MouseEvent,
@@ -12,6 +12,7 @@ import styled from 'styled-components';
 import HashedTimelockArtifact from '../artifacts/contracts/HashedTimelock.sol/HashedTimelock.json';
 import { Provider } from '../utils/provider';
 import { SectionDivider } from './SectionDivider';
+import { rmSync } from 'fs';
 
 const StyledDeployContractButton = styled.button`
   width: 180px;
@@ -57,8 +58,11 @@ export function HashedTimelock(): ReactElement {
   const [HashedTimelockContractAddr, setHashedTimelockContractAddr] = useState<string>('');
 
   const [HTLCID, setHTLCID] = useState<string>('');
-  const [greetingInput, setGreetingInput] = useState<string>('');
+  const [htlcInput, sethtlcInput] = useState<string>('');
+  const [withdrawInput, setwithdrawInput] = useState<string>('');
+  const [refundInput, setrefundInput] = useState<string>('');
 
+  const cry = new Crypoto();
   const ONE_YEAR_IN_SECS = 24 * 60 * 60;
   const ONE_GWEI = 10_000_000_000;
 
@@ -125,7 +129,17 @@ export function HashedTimelock(): ReactElement {
 
   function handleGreetingChange(event: ChangeEvent<HTMLInputElement>): void {
     event.preventDefault();
-    setGreetingInput(event.target.value);
+    sethtlcInput(event.target.value);
+  }
+
+  function handleWithdrawChange(event: ChangeEvent<HTMLInputElement>): void {
+    event.preventDefault();
+    setwithdrawInput(event.target.value);
+  }
+
+  function handleRefundChange(event: ChangeEvent<HTMLInputElement>): void {
+    event.preventDefault();
+    setrefundInput(event.target.value);
   }
 
   function handleNewHTLCSubmit(event: MouseEvent<HTMLButtonElement>): void {
@@ -141,30 +155,31 @@ export function HashedTimelock(): ReactElement {
       return;
     }
 
-    if (!greetingInput) {
-      window.alert('Greeting cannot be empty');
+    if (!htlcInput) {
+      window.alert('htlcInput cannot be empty');
       return;
     }
 
     async function submitNewHTLC(signer: Signer, HashedTimelockContract: Contract): Promise<void> {
       try {
-        const inputA = greetingInput.split(",");
+        console.log("htlcInput:", htlcInput)
+        const inputA = htlcInput.split(",");
         const receiver = inputA[0];
-        const hash = newHash(inputA[1])
+        const hash = "0x" + cry.sha256(inputA[1])
 
-
-        const lockedAmount = ONE_GWEI;
+        const lockedAmount = "15";
 
         const now = Date.parse (new Date ().toString())
         const unlockTime = now + ONE_YEAR_IN_SECS;
-        const sender = signer.getAddress();
-        const setTxn = await HashedTimelockContract.newHTLC(receiver, hash, unlockTime, {from: sender, value: lockedAmount});
-
+        const sender = await signer.getAddress().then((rs) => {return rs;});
+        console.log("newHTLC:", receiver,hash,unlockTime, sender,lockedAmount)
+        const setTxn = await HashedTimelockContract.newHTLC(receiver, hash, unlockTime, {from: sender, value: ethers.utils.parseEther(lockedAmount)});
 
         const tx = await setTxn.wait();
-        window.alert(`Success!\n\nGreeting is now: ${tx}`);
+        const htlcId = tx.events[0].topics[1];
+        console.log("HTLCID:", htlcId)
 
-        setHTLCID(tx);
+        setHTLCID(htlcId);
       } catch (error: any) {
         window.alert(
           'Error!' + (error && error.message ? `\n\n${error.message}` : '')
@@ -175,13 +190,87 @@ export function HashedTimelock(): ReactElement {
     submitNewHTLC(signer, HashedTimelockContract);
   }
 
-  function sha256(x:string) :string{
-    return createHash('sha256').update(x).digest('hex');
+  function handleWithdrawSubmit(event: MouseEvent<HTMLButtonElement>): void {
+    event.preventDefault();
+
+    if (!HashedTimelockContract) {
+      window.alert('Undefined HashedTimelockContract');
+      return;
+    }
+
+    if (!signer) {
+      window.alert('Undefined signer');
+      return;
+    }
+
+    if (!withdrawInput) {
+      window.alert('withdrawInput cannot be empty');
+      return;
+    }
+
+    async function submitWithdraw(signer: Signer, HashedTimelockContract: Contract): Promise<void> {
+      try {
+        console.log("withdrawInput:", withdrawInput)
+        const inputA = withdrawInput.split(",");
+        if(inputA.length != 2) {
+          window.alert('withdrawInput error');
+          return;
+        }
+        console.log("withdraw:", inputA[0], inputA[1])
+        const bytes = cry.tobytes(inputA[1])
+
+        const preimage = bytes.map(function(byte){return (byte & 0xFF).toString(16)}).join('');
+        console.log("preimage:", preimage)
+        const setTxn = await HashedTimelockContract.withdraw(inputA[0], "0x"+preimage);
+
+        console.log("setTxn:", setTxn)
+
+        window.alert('withdraw success');
+      } catch (error: any) {
+        window.alert(
+          'Error!' + (error && error.message ? `\n\n${error.message}` : '')
+        );
+      }
+    }
+
+    submitWithdraw(signer, HashedTimelockContract);
   }
 
-  //create hash pair
-  function newHash(preimage:string) : string{
-    return sha256(preimage);
+  function handleRefundSubmit(event: MouseEvent<HTMLButtonElement>): void {
+    event.preventDefault();
+
+    if (!HashedTimelockContract) {
+      window.alert('Undefined HashedTimelockContract');
+      return;
+    }
+
+    if (!signer) {
+      window.alert('Undefined signer');
+      return;
+    }
+
+    if (!refundInput) {
+      window.alert('refundInput cannot be empty');
+      return;
+    }
+
+    async function submitRefund(signer: Signer, HashedTimelockContract: Contract): Promise<void> {
+      try {
+        console.log("refundInput:", refundInput)
+
+        const setTxn = await HashedTimelockContract.refund(refundInput);
+
+        console.log("setTxn:", setTxn)
+
+        window.alert('refund success');
+      } catch (error: any) {
+        window.alert(
+          'Error!' + (error && error.message ? `\n\n${error.message}` : '')
+        );
+      }
+    }
+
+    submitRefund(signer, HashedTimelockContract);
   }
   
 
@@ -207,17 +296,17 @@ export function HashedTimelock(): ReactElement {
             <em>{`<Contract not yet deployed>`}</em>
           )}
         </div>
-        {/* empty placeholder div below to provide empty first row, 3rd col div for a 2x3 grid */}
+        {/* empty placeholder div below to provide empty first row, 3rd col div for a 3x4 grid */}
         <div></div>
         <StyledLabel>Current hashID</StyledLabel>
         <div>
           {HTLCID ? HTLCID : <em>{`<HashedTimelock not yet created>`}</em>}
         </div>
-        {/* empty placeholder div below to provide empty first row, 3rd col div for a 2x3 grid */}
+        {/* empty placeholder div below to provide empty first row, 3rd col div for a 3x4 grid */}
         <div></div>
-        <StyledLabel htmlFor="greetingInput">new HashedTimelock</StyledLabel>
+        <StyledLabel htmlFor="htlcInput">new HashedTimelock</StyledLabel>
         <StyledInput
-          id="greetingInput"
+          id="htlcInput"
           type="text"
           placeholder={'<receiver, skey>'}
           onChange={handleGreetingChange}
@@ -230,6 +319,49 @@ export function HashedTimelock(): ReactElement {
             borderColor: !active || !HashedTimelockContract ? 'unset' : 'blue'
           }}
           onClick={handleNewHTLCSubmit}
+        >
+          Submit
+        </StyledButton>
+      </StyledGreetingDiv>
+      <SectionDivider />
+      <StyledGreetingDiv>
+        {/* empty placeholder div below to provide empty first row, 3rd col div for a 3x4 grid */}
+        <StyledLabel htmlFor="withdrawInput">Withdraw</StyledLabel>
+        <StyledInput
+          id="withdrawInput"
+          type="text"
+          placeholder={'<htlcID, preimage>'}
+          onChange={handleWithdrawChange}
+          style={{ fontStyle: HTLCID ? 'normal' : 'italic' }}
+        ></StyledInput>
+        <StyledButton
+          disabled={!active || !HashedTimelockContract ? true : false}
+          style={{
+            cursor: !active || !HashedTimelockContract ? 'not-allowed' : 'pointer',
+            borderColor: !active || !HashedTimelockContract ? 'unset' : 'blue'
+          }}
+          onClick={handleWithdrawSubmit}
+        >
+          Submit
+        </StyledButton>
+      </StyledGreetingDiv>
+      <SectionDivider />
+      <StyledGreetingDiv>
+        <StyledLabel htmlFor="refundInput">Refund</StyledLabel>
+        <StyledInput
+          id="refundInput"
+          type="text"
+          placeholder={'<htlcID>'}
+          onChange={handleRefundChange}
+          style={{ fontStyle: HTLCID ? 'normal' : 'italic' }}
+        ></StyledInput>
+        <StyledButton
+          disabled={!active || !HashedTimelockContract ? true : false}
+          style={{
+            cursor: !active || !HashedTimelockContract ? 'not-allowed' : 'pointer',
+            borderColor: !active || !HashedTimelockContract ? 'unset' : 'blue'
+          }}
+          onClick={handleRefundSubmit}
         >
           Submit
         </StyledButton>
