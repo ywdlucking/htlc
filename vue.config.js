@@ -8,4 +8,4 @@ function resolve(dir) {
 module.exports = {
   outputDir: 'dist',
   assetsDir: 'static',
- }
+}
