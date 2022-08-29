@@ -127,7 +127,7 @@ describe("AKToken", function () {
       const bc = await ak.balanceOf(lock.address)
       expect(bc).to.equal(lockedAmount);
 
-      await lock.connect(two).withdrawERC20(hashId, hp.preimage, akAddress);
+      await lock.connect(two).withdrawERC20(hashId, hp.preimage);
       const receiverBC = await ak.balanceOf(receiver)
 
       expect(receiverBC).to.equal(lockedAmount);
@@ -149,7 +149,7 @@ describe("AKToken", function () {
       expect(bc).to.equal(lockedAmount);
 
       const hp_error = newHashPair();
-      await expect(lock.connect(two).withdrawERC20(hashId, hp_error.preimage, akAddress)).to.be.revertedWith(
+      await expect(lock.connect(two).withdrawERC20(hashId, hp_error.preimage)).to.be.revertedWith(
         "hashlock hash does not match"
       );
     });
@@ -169,8 +169,8 @@ describe("AKToken", function () {
       const bc = await ak.balanceOf(lock.address)
       expect(bc).to.equal(lockedAmount);
 
-      await lock.connect(two).withdrawERC20(hashId, hp.preimage, akAddress);
-      await expect(lock.connect(two).withdrawERC20(hashId, hp.preimage, akAddress)).to.be.revertedWith(
+      await lock.connect(two).withdrawERC20(hashId, hp.preimage);
+      await expect(lock.connect(two).withdrawERC20(hashId, hp.preimage)).to.be.revertedWith(
         "withdrawable: already withdrawn"
       );
     });
@@ -225,7 +225,7 @@ describe("AKToken", function () {
           resolve();
         }, 5000)
       }).then(async () => {
-        await lock.connect(one).refundERC20(hashId, akAddress);
+        await lock.connect(one).refundERC20(hashId);
         const bc = await ak.balanceOf(lock.address)
         expect(bc).to.equal(0);
       });
@@ -252,9 +252,9 @@ describe("AKToken", function () {
           resolve();
         }, 5000)
       }).then(async () => {
-        await lock.connect(one).refundERC20(hashId, akAddress);
+        await lock.connect(one).refundERC20(hashId);
         //already refundERC20ed
-        await expect(lock.connect(one).refundERC20(hashId, akAddress)).to.be.revertedWith(
+        await expect(lock.connect(one).refundERC20(hashId)).to.be.revertedWith(
           "refundable: already refunded"
         );
       });
@@ -276,13 +276,13 @@ describe("AKToken", function () {
       const bc = await ak.balanceOf(lock.address)
       expect(bc).to.equal(lockedAmount);
       // already withdrawn
-      await lock.connect(two).withdrawERC20(hashId, hp.preimage, akAddress);
+      await lock.connect(two).withdrawERC20(hashId, hp.preimage);
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           resolve();
         }, 5000)
       }).then(async () => {         
-        await expect(lock.connect(one).refundERC20(hashId, akAddress)).to.be.revertedWith(
+        await expect(lock.connect(one).refundERC20(hashId)).to.be.revertedWith(
           "refundable: already withdrawn"
         );
       });
@@ -309,7 +309,7 @@ describe("AKToken", function () {
           resolve();
         }, 2000)
       }).then(async () => {
-        await expect(lock.connect(one).refundERC20(hashId, akAddress)).to.be.revertedWith(
+        await expect(lock.connect(one).refundERC20(hashId)).to.be.revertedWith(
           "refundable: timelock not yet passed"
         );
       });

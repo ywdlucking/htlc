@@ -2,6 +2,8 @@
 pragma solidity >=0.4.22 <0.9.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 /**
  * @title HashedTimelock on the evm
  *
@@ -204,19 +206,23 @@ contract HashedTimelock {
      * @param _hashlock Sha256 hash.
      * @param _timelock The expiration date is the timestamp. If the asset has not been extracted by the receiver, it can be retrieved by the sender.
      * @param _token nft address
-     * @param _amount nft amount
+     * @param _tokenId nft tokenId
      * @return htlcId The ID of the HTLC where the asset is locked.
      */
-    function newHTLCNFT(address payable _receiver, bytes32 _hashlock, uint _timelock, address _token, uint _amount)
+    function newHTLCNFT(address payable _receiver, bytes32 _hashlock, uint _timelock, address _token, uint256 _tokenId)
         external
         futureTimelock(_timelock)
         returns (bytes32 htlcId)
     {
+        //save some token to this contract
+        IERC721 token = IERC721(address(_token));
+        token.transferFrom(msg.sender, address(this), _tokenId);
+
         htlcId = sha256(
             abi.encodePacked(
                 msg.sender,
                 _receiver,
-                _amount,
+                _tokenId,
                 _hashlock,
                 _timelock
             )
@@ -229,7 +235,7 @@ contract HashedTimelock {
         contracts[htlcId] = LockHTLC(
             sender,
             _receiver,
-            _amount,
+            _tokenId,
             _hashlock,
             _timelock,
             false,
@@ -244,7 +250,7 @@ contract HashedTimelock {
             htlcId,
             msg.sender,
             _receiver,
-            _amount,
+            _tokenId,
             _hashlock,
             _timelock
         );
@@ -277,10 +283,9 @@ contract HashedTimelock {
      *
      * @param _htlcId The ID of the HTLC where the asset is locked.
      * @param _preimage sha256(_preimage) equal hashlock.
-     * @param _token erc20 address
      * @return bool True on success.
      */
-    function withdrawERC20(bytes32 _htlcId, bytes calldata _preimage, address _token)
+    function withdrawERC20(bytes32 _htlcId, bytes calldata _preimage)
         external
         contractExists(_htlcId)
         hashlockMatches(_htlcId, _preimage)
@@ -292,8 +297,33 @@ contract HashedTimelock {
         c.withdrawn = true;
         
         //transfer erc20 to msg.adderss
-        IERC20 token = IERC20(address(_token));
+        IERC20 token = IERC20(address(c.erc20Address));
         token.transfer(c.receiver, c.amount);
+        emit LogHTLCWithdraw(_htlcId);
+        return true;
+    }
+
+    /**
+     * @dev Once the receiver knows the original image of the time lock, it will call this method to extract the locked asset
+     *
+     * @param _htlcId The ID of the HTLC where the asset is locked.
+     * @param _preimage sha256(_preimage) equal hashlock.
+     * @return bool True on success.
+     */
+    function withdrawNFT(bytes32 _htlcId, bytes calldata _preimage)
+        external
+        contractExists(_htlcId)
+        hashlockMatches(_htlcId, _preimage)
+        withdrawable(_htlcId)
+        returns (bool)
+    {
+        LockHTLC storage c = contracts[_htlcId];
+        c.preimage = _preimage;
+        c.withdrawn = true;
+        
+        //transfer erc20 to msg.adderss
+        IERC721 token = IERC721(address(c.nftAddress));
+        token.safeTransferFrom(address(this), c.receiver, c.amount);
         emit LogHTLCWithdraw(_htlcId);
         return true;
     }
@@ -322,10 +352,9 @@ contract HashedTimelock {
      * @dev If the time lock expires, the sender calls this method to retrieve the locked asset.
      *
      * @param _htlcId The ID of the HTLC where the asset is locked.
-     * @param _token erc20 address
      * @return bool True on success.
      */
-    function refundERC20(bytes32 _htlcId, address _token)
+    function refundERC20(bytes32 _htlcId)
         external
         contractExists(_htlcId)
         refundable(_htlcId)
@@ -334,8 +363,30 @@ contract HashedTimelock {
         LockHTLC storage c = contracts[_htlcId];
         c.refunded = true;
         //transfer erc20 to msg.adderss
-        IERC20 token = IERC20(address(_token));
+        IERC20 token = IERC20(address(c.erc20Address));
         token.transfer(c.sender, c.amount);
+        emit LogHTLCRefund(_htlcId);
+        return true;
+    }
+
+    /**
+     * @dev If the time lock expires, the sender calls this method to retrieve the locked asset.
+     *
+     * @param _htlcId The ID of the HTLC where the asset is locked.
+     * @return bool True on success.
+     */
+    function refundNFT(bytes32 _htlcId)
+        external
+        contractExists(_htlcId)
+        refundable(_htlcId)
+        returns (bool)
+    {
+        LockHTLC storage c = contracts[_htlcId];
+        c.refunded = true;
+        //transfer erc20 to msg.adderss
+        //transfer erc20 to msg.adderss
+        IERC721 token = IERC721(address(c.nftAddress));
+        token.safeTransferFrom(address(this), c.receiver, c.amount);
         emit LogHTLCRefund(_htlcId);
         return true;
     }
