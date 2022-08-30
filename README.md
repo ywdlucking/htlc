@@ -7,7 +7,7 @@
 
 ## Project scheme
 
-![Imgae test](./doc/image/t-a.png)
+![Imgae test](./doc/image/t-a.jpg)
 
 ## Project setup
 ```
