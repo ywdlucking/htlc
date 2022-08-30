@@ -58,6 +58,7 @@ export function HashedTimelock(): ReactElement {
   const [HashedTimelockContractAddr, setHashedTimelockContractAddr] = useState<string>('');
 
   const [HTLCID, setHTLCID] = useState<string>('');
+  const [HASHVALUE, setHASHVALUE] = useState<string>('');
   const [htlcInput, sethtlcInput] = useState<string>('');
   const [withdrawInput, setwithdrawInput] = useState<string>('');
   const [refundInput, setrefundInput] = useState<string>('');
@@ -165,7 +166,11 @@ export function HashedTimelock(): ReactElement {
         console.log("htlcInput:", htlcInput)
         const inputA = htlcInput.split(",");
         const receiver = inputA[0];
-        const hash = "0x" + cry.sha256(inputA[1])
+        const falg = inputA[2];
+        let hash = inputA[1];
+        if(falg === "0") {
+          hash = "0x" + cry.sha256(inputA[1])
+        }
 
         const lockedAmount = "15";
 
@@ -178,7 +183,7 @@ export function HashedTimelock(): ReactElement {
         const tx = await setTxn.wait();
         const htlcId = tx.events[0].topics[1];
         console.log("HTLCID:", htlcId)
-
+        setHASHVALUE(hash);
         setHTLCID(htlcId);
       } catch (error: any) {
         window.alert(
@@ -301,6 +306,12 @@ export function HashedTimelock(): ReactElement {
         <StyledLabel>Current hashID</StyledLabel>
         <div>
           {HTLCID ? HTLCID : <em>{`<HashedTimelock not yet created>`}</em>}
+        </div>
+        {/* empty placeholder div below to provide empty first row, 3rd col div for a 3x4 grid */}
+        <div></div>
+        <StyledLabel>HASHVALUE</StyledLabel>
+        <div>
+          {HASHVALUE ? HASHVALUE : <em>{`<HashedTimelock not yet created>`}</em>}
         </div>
         {/* empty placeholder div below to provide empty first row, 3rd col div for a 3x4 grid */}
         <div></div>

@@ -74,20 +74,33 @@ npx hardhat node --port 9545
 ### step 2. install metamask
 
 connet two blockchain
-![Imgae test](./doc/image/connect.png)
+
+- now
+- a-chain sender 10000AETH && reciver 10000AETH
+- b-chain sender 10000BETH && reciver 10000BETH
+
+### step 3. sender deploy contract on Achain and lock 15AETH
+
+![Imgae test](./doc/image/locka.png)
+
+![Imgae test](./doc/image/locka-s.png)
 
 
-### step 3. sender deploy contract on Achain
+- get output
+```
+1. hashId: 0x810748b77061cadf4fbf718ed2608caad690f94eaef96b5280a15a844a37670c
+2. key-hash: 0x28b85e2e72627d486a7a2e79674eafa5137fb94fd26c434c43399b6694fe265a
+```
 
-![Imgae test](./doc/image/deploy.png)
-
-![Imgae test](./doc/image/deploy_success.png)
+### step 4. reciver deploy contract on Bchain and use sender key-hash lock 15BETH
 
 
-### step 4. sender create A HTLC
+![Imgae test](./doc/image/b-d.png)
+![Imgae test](./doc/image/b-lock.png)
 
-![Imgae test](./doc/image/new_htlc.png)
+### step 5. sender connect BCHAIN and use key(sss96578) to withdraw reciver's BETH
 
-### step 5. reciver get AETH from HTLC
+![Imgae test](./doc/image/s-get-b.png)
+![Imgae test](./doc/image/s-getb-s.png)
 
-![Imgae test](./doc/image/withdraw.png)
+### step 6. sender get 15BETH, reciver get the hashkey preimage at the same time, so reciver can use this get 15AEHT at ACHAIN
