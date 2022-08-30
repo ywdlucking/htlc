@@ -5,6 +5,10 @@
 * contract: solidity + hardhat + js
 * dapp: react + typescript
 
+## Project scheme
+
+![Imgae test](./doc/image/t-a.png)
+
 ## Project setup
 ```
 npm install
